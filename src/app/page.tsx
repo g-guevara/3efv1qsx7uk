@@ -17,9 +17,40 @@ const DataPortal = () => {
     vina: '',
     santiago: ''
   });
+  const [uploadedFiles, setUploadedFiles] = useState<{[key: string]: {name: string, date: string} | null}>({
+    Lunes: null,
+    Martes: null,
+    Miércoles: null,
+    Jueves: null,
+    Viernes: null,
+    Sábado: null,
+    Domingo: null
+  });
 
   const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   
+  const handleFileUpload = (day: string, file: File) => {
+    const currentDate = new Date();
+    const formattedDate = `${currentDate.toLocaleDateString()} ${currentDate.toLocaleTimeString()}`;
+    
+    setUploadedFiles(prev => ({
+      ...prev,
+      [day]: {
+        name: file.name,
+        date: formattedDate
+      }
+    }));
+    
+    alert(`Archivo "${file.name}" cargado para ${day}`);
+  };
+  
+  const handleFileRemove = (day: string) => {
+    setUploadedFiles(prev => ({
+      ...prev,
+      [day]: null
+    }));
+  };
+
   const isValidTimeFormat = (time: string): boolean => {
     // Validar formato HH:MM de 24 horas
     const regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -56,7 +87,7 @@ const DataPortal = () => {
       [location]: prev[location].filter((_, i) => i !== index)
     }));
   };
-
+  
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto p-6 bg-white">
       <h1 className="text-2xl font-bold mb-6 text-gray-800">Portal de inyección de datos a Salas UAI</h1>
@@ -164,27 +195,43 @@ const DataPortal = () => {
                 key={day} 
                 className="flex flex-col items-center"
               >
-                <label 
-                  className="border rounded-md bg-gray-100 w-full p-4 mb-2 flex flex-col items-center cursor-pointer hover:bg-gray-200 transition-colors"
-                >
-                  <input
-                    type="file"
-                    id={`file-${day}`}
-                    className="hidden"
-                    accept=".pdf,.doc,.docx,.xlsx,.csv"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        // Aquí podrías manejar el archivo subido
-                        console.log(`Archivo para ${day}:`, e.target.files[0].name);
-                        alert(`Archivo "${e.target.files[0].name}" seleccionado para ${day}`);
-                      }
-                    }}
-                  />
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                  <span className="text-base">subir archivos</span>
-                </label>
+                {!uploadedFiles[day] ? (
+                  <label 
+                    className="border rounded-md bg-gray-100 w-full p-4 mb-2 flex flex-col items-center cursor-pointer hover:bg-gray-200 transition-colors"
+                  >
+                    <input
+                      type="file"
+                      id={`file-${day}`}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.xlsx,.csv"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleFileUpload(day, e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span className="text-base">subir archivos</span>
+                  </label>
+                ) : (
+                  <div className="border rounded-md bg-white w-full p-4 mb-2 flex flex-col items-center">
+                    <div className="flex items-center justify-between w-full mb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <button 
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => handleFileRemove(day)}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                    <p className="text-sm font-medium truncate w-full text-center">{uploadedFiles[day]?.name}</p>
+                    <p className="text-xs text-gray-500 mt-1">{uploadedFiles[day]?.date}</p>
+                  </div>
+                )}
                 <span className="text-sm">{day}</span>
               </div>
             ))}
