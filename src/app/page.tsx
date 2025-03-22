@@ -1,103 +1,150 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import React, { useState } from 'react';
+
+type LocationType = 'vina' | 'santiago';
+type SchedulesType = {
+  vina: string[];
+  santiago: string[];
+};
+
+const DataPortal = () => {
+  const [schedules, setSchedules] = useState<SchedulesType>({
+    vina: ['14:20', '14:20', '14:20', '14:20', '14:20', '14:20'],
+    santiago: ['14:20', '14:20', '14:20', '14:20', '14:20', '14:20']
+  });
+
+  const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  
+  const handleAddTime = (location: LocationType) => {
+    setSchedules(prev => ({
+      ...prev,
+      [location]: [...prev[location], '14:20']
+    }));
+  };
+
+  const handleTimeChange = (location: LocationType, index: number, value: string) => {
+    const newSchedules = {...schedules};
+    newSchedules[location][index] = value;
+    setSchedules(newSchedules);
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
+    <div className="flex flex-col items-center w-full max-w-4xl mx-auto p-6 bg-white">
+      <h1 className="text-2xl font-bold mb-6 text-gray-800">Portal de inyección de datos a Salas UAI</h1>
+      
+      <div className="w-full">
+        <h2 className="text-xl font-semibold mb-4 text-blue-600">Buses</h2>
+        
+        {/* Viña Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-3">Viña</h3>
+          <div className="flex flex-wrap gap-2 mb-2">
+            <div className="border border-gray-300 p-2 w-56">
+              <input 
+                type="text" 
+                className="w-full p-2 text-red-600 bg-white outline-none" 
+                placeholder="Agregar horario"
+                value="input"
+                readOnly
+              />
+            </div>
+            <button 
+              onClick={() => handleAddTime('vina')}
+              className="bg-gray-200 p-2 w-10 flex items-center justify-center"
+            >
+              +
+            </button>
             
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {schedules.vina.map((time, index) => (
+              <div key={`vina-${index}`} className="border border-gray-300 p-2 w-56">
+                <input 
+                  type="time" 
+                  className="w-full p-2 text-gray-700" 
+                  value={time}
+                  onChange={(e) => handleTimeChange('vina', index, e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        
+        {/* Santiago Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-3">Santiago</h3>
+          <div className="flex flex-wrap gap-2 mb-2">
+            <div className="border border-gray-300 p-2 w-56">
+              <input 
+                type="text" 
+                className="w-full p-2 text-red-600 bg-white outline-none" 
+                placeholder="Agregar horario"
+                value="input"
+                readOnly
+              />
+            </div>
+            <button 
+              onClick={() => handleAddTime('santiago')}
+              className="bg-gray-200 p-2 w-10 flex items-center justify-center"
+            >
+              +
+            </button>
+            
+            {schedules.santiago.map((time, index) => (
+              <div key={`santiago-${index}`} className="border border-gray-300 p-2 w-56">
+                <input 
+                  type="time" 
+                  className="w-full p-2 text-gray-700" 
+                  value={time}
+                  onChange={(e) => handleTimeChange('santiago', index, e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* File Upload Section */}
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4 text-blue-600">horarios</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {daysOfWeek.map((day, index) => (
+              <div 
+                key={day} 
+                className="flex flex-col items-center"
+              >
+                <label 
+                  className={`border rounded-md bg-gray-100 w-full p-4 mb-2 flex flex-col items-center cursor-pointer hover:bg-gray-200 transition-colors ${index === 2 ? 'border-red-500' : ''}`}
+                >
+                  <input
+                    type="file"
+                    id={`file-${day}`}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xlsx,.csv"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        // Aquí podrías manejar el archivo subido
+                        console.log(`Archivo para ${day}:`, e.target.files[0].name);
+                      }
+                    }}
+                  />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <span className="text-base">subir archivos</span>
+                </label>
+                <span className="text-sm">{day}</span>
+              </div>
+            ))}
+            <div className="flex flex-col items-center">
+              <div className="border rounded-md bg-gray-100 w-full p-4 mb-2 flex flex-col items-center">
+                <span className="text-base mb-2">...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default DataPortal;
