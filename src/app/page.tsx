@@ -13,20 +13,48 @@ const DataPortal = () => {
     vina: ['14:20', '14:20', '14:20', '14:20', '14:20', '14:20'],
     santiago: ['14:20', '14:20', '14:20', '14:20', '14:20', '14:20']
   });
+  const [newTimeInputs, setNewTimeInputs] = useState<{vina: string, santiago: string}>({
+    vina: '',
+    santiago: ''
+  });
 
   const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   
+  const isValidTimeFormat = (time: string): boolean => {
+    // Validar formato HH:MM de 24 horas
+    const regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    return regex.test(time);
+  };
+
   const handleAddTime = (location: LocationType) => {
-    setSchedules(prev => ({
-      ...prev,
-      [location]: [...prev[location], '14:20']
-    }));
+    if (newTimeInputs[location]) {
+      if (isValidTimeFormat(newTimeInputs[location])) {
+        setSchedules(prev => ({
+          ...prev,
+          [location]: [...prev[location], newTimeInputs[location]]
+        }));
+        // Reset the input field after adding
+        setNewTimeInputs(prev => ({
+          ...prev,
+          [location]: ''
+        }));
+      } else {
+        alert('Por favor, ingrese una hora válida en formato HH:MM (por ejemplo, 14:30)');
+      }
+    }
   };
 
   const handleTimeChange = (location: LocationType, index: number, value: string) => {
     const newSchedules = {...schedules};
     newSchedules[location][index] = value;
     setSchedules(newSchedules);
+  };
+
+  const handleRemoveTime = (location: LocationType, index: number) => {
+    setSchedules(prev => ({
+      ...prev,
+      [location]: prev[location].filter((_, i) => i !== index)
+    }));
   };
 
   return (
@@ -43,27 +71,39 @@ const DataPortal = () => {
             <div className="border border-gray-300 p-2 w-56">
               <input 
                 type="text" 
-                className="w-full p-2 text-red-600 bg-white outline-none" 
-                placeholder="Agregar horario"
-                value="input"
-                readOnly
+                className="w-full p-2 bg-white outline-none" 
+                placeholder="Agregar horario (HH:MM)"
+                value={newTimeInputs.vina}
+                onChange={(e) => setNewTimeInputs(prev => ({...prev, vina: e.target.value}))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddTime('vina');
+                  }
+                }}
               />
             </div>
             <button 
               onClick={() => handleAddTime('vina')}
-              className="bg-gray-200 p-2 w-10 flex items-center justify-center"
+              className="bg-gray-200 p-2 w-10 flex items-center justify-center hover:bg-gray-300"
             >
               +
             </button>
             
             {schedules.vina.map((time, index) => (
-              <div key={`vina-${index}`} className="border border-gray-300 p-2 w-56">
+              <div 
+                key={`vina-${index}`} 
+                className="border border-gray-300 p-2 w-56 relative hover:bg-gray-50 cursor-pointer group"
+                onClick={() => handleRemoveTime('vina', index)}
+              >
                 <input 
                   type="time" 
-                  className="w-full p-2 text-gray-700" 
+                  className="w-full p-2 text-gray-700 pointer-events-none" 
                   value={time}
-                  onChange={(e) => handleTimeChange('vina', index, e.target.value)}
+                  readOnly
                 />
+                <span className="absolute inset-0 opacity-0 group-hover:opacity-100 flex items-center justify-center bg-red-100 bg-opacity-50 transition-opacity">
+                  <span className="text-red-600 font-medium">Eliminar</span>
+                </span>
               </div>
             ))}
           </div>
@@ -76,27 +116,39 @@ const DataPortal = () => {
             <div className="border border-gray-300 p-2 w-56">
               <input 
                 type="text" 
-                className="w-full p-2 text-red-600 bg-white outline-none" 
-                placeholder="Agregar horario"
-                value="input"
-                readOnly
+                className="w-full p-2 bg-white outline-none" 
+                placeholder="Agregar horario (HH:MM)"
+                value={newTimeInputs.santiago}
+                onChange={(e) => setNewTimeInputs(prev => ({...prev, santiago: e.target.value}))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddTime('santiago');
+                  }
+                }}
               />
             </div>
             <button 
               onClick={() => handleAddTime('santiago')}
-              className="bg-gray-200 p-2 w-10 flex items-center justify-center"
+              className="bg-gray-200 p-2 w-10 flex items-center justify-center hover:bg-gray-300"
             >
               +
             </button>
             
             {schedules.santiago.map((time, index) => (
-              <div key={`santiago-${index}`} className="border border-gray-300 p-2 w-56">
+              <div 
+                key={`santiago-${index}`} 
+                className="border border-gray-300 p-2 w-56 relative hover:bg-gray-50 cursor-pointer group"
+                onClick={() => handleRemoveTime('santiago', index)}
+              >
                 <input 
                   type="time" 
-                  className="w-full p-2 text-gray-700" 
+                  className="w-full p-2 text-gray-700 pointer-events-none" 
                   value={time}
-                  onChange={(e) => handleTimeChange('santiago', index, e.target.value)}
+                  readOnly
                 />
+                <span className="absolute inset-0 opacity-0 group-hover:opacity-100 flex items-center justify-center bg-red-100 bg-opacity-50 transition-opacity">
+                  <span className="text-red-600 font-medium">Eliminar</span>
+                </span>
               </div>
             ))}
           </div>
@@ -113,7 +165,7 @@ const DataPortal = () => {
                 className="flex flex-col items-center"
               >
                 <label 
-                  className={`border rounded-md bg-gray-100 w-full p-4 mb-2 flex flex-col items-center cursor-pointer hover:bg-gray-200 transition-colors ${index === 2 ? 'border-red-500' : ''}`}
+                  className="border rounded-md bg-gray-100 w-full p-4 mb-2 flex flex-col items-center cursor-pointer hover:bg-gray-200 transition-colors"
                 >
                   <input
                     type="file"
@@ -124,6 +176,7 @@ const DataPortal = () => {
                       if (e.target.files && e.target.files[0]) {
                         // Aquí podrías manejar el archivo subido
                         console.log(`Archivo para ${day}:`, e.target.files[0].name);
+                        alert(`Archivo "${e.target.files[0].name}" seleccionado para ${day}`);
                       }
                     }}
                   />
