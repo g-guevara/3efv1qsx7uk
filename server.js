@@ -75,6 +75,7 @@ app.post("/buses", async (req, res) => {
     await newBus.save();
     res.status(201).json(newBus);
   } catch (err) {
+    console.error("Error al guardar bus:", err);
     res.status(500).json({ error: "Error al guardar el horario de bus" });
   }
 });
@@ -91,6 +92,7 @@ app.post("/events/batch", async (req, res) => {
     const savedEvents = await AllEvent.insertMany(events);
     res.status(201).json(savedEvents);
   } catch (err) {
+    console.error("Error al guardar eventos:", err);
     res.status(500).json({ error: "Error al guardar eventos" });
   }
 });
@@ -138,6 +140,22 @@ app.post("/process-excel", upload.single('file'), async (req, res) => {
   } catch (err) {
     console.error("Error procesando archivo Excel:", err);
     res.status(500).json({ error: "Error al procesar el archivo Excel" });
+  }
+});
+
+// RUTA PARA ELIMINAR TODOS LOS DATOS (REINICIO)
+app.delete("/reset", async (req, res) => {
+  try {
+    // Eliminar todos los buses
+    await Bus.deleteMany({});
+    
+    // Eliminar todos los eventos
+    await AllEvent.deleteMany({});
+    
+    res.status(200).json({ message: "Todos los datos han sido eliminados correctamente" });
+  } catch (err) {
+    console.error("Error al reiniciar datos:", err);
+    res.status(500).json({ error: "Error al eliminar los datos" });
   }
 });
 

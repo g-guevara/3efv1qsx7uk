@@ -1,4 +1,5 @@
 import React from 'react';
+import { saveBusSchedule, processExcelFile, resetAllData } from '../services/apiService';
 
 // Tipo para los distintos campus
 type CampusType = 'vina' | 'penalolen' | 'errazuriz' | 'vitacura' | string;
@@ -45,6 +46,79 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
     return string.charAt(0).toUpperCase() + string.slice(1).replace(/_/g, ' ');
   };
   
+  // Función para guardar un horario de bus en la base de datos
+  const saveBusToDatabase = async (campus: string, time: string) => {
+    try {
+      const currentDate = new Date();
+      const formattedDate = currentDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+      
+      const busData = {
+        Tipo: "Buses",
+        Evento: campus,
+        Fecha: formattedDate,
+        Inicio: time,
+        Fin: time,
+        Sala: "Dominicos",
+        Edificio: "paradero",
+        Campus: campus,
+        fechaActualizacion: currentDate.toISOString()
+      };
+      
+      await saveBusSchedule(busData);
+      console.log(`Horario guardado para ${campus}: ${time}`);
+    } catch (error) {
+      console.error('Error al guardar el horario:', error);
+      alert(`Error al guardar el horario en la base de datos: ${error}`);
+    }
+  };
+  
+  // Función modificada para manejar la subida de archivos
+  const handleFileUploadWithProcessing = async (day: string, file: File) => {
+    try {
+      // Primero procesamos el archivo para enviarlo a la API
+      await processExcelFile(file, day);
+      
+      // Luego actualizamos la UI con la información del archivo
+      handleFileUpload(day, file);
+    } catch (error) {
+      console.error('Error procesando el archivo:', error);
+      alert(`Error al procesar el archivo: ${error}`);
+    }
+  };
+  
+  // Modificación del botón de agregar hora para guardar en la base de datos
+  const handleAddTimeWithSave = async (campus: string) => {
+    if (newTimeInputs[campus] && /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(newTimeInputs[campus])) {
+      // Primero guardamos en la base de datos
+      await saveBusToDatabase(campus, newTimeInputs[campus]);
+      
+      // Luego actualizamos la UI
+      handleAddTime(campus);
+    } else {
+      handleAddTime(campus); // Manejar errores de formato con la función original
+    }
+  };
+  
+  // Función modificada para reiniciar también en la base de datos
+  const handleResetWithDatabase = async () => {
+    // Confirmar que el usuario realmente quiere reiniciar todo
+    if (window.confirm('¿Estás seguro de que deseas reiniciar todos los datos? Esta acción no se puede deshacer y eliminará todos los datos de la base de datos.')) {
+      try {
+        // Primero eliminamos los datos en el servidor
+        await resetAllData();
+        
+        // Luego hacemos el reinicio local
+        handleReset();
+        
+        // Confirmación para el usuario
+        alert('Todos los datos han sido eliminados correctamente');
+      } catch (error) {
+        console.error('Error al reiniciar datos:', error);
+        alert(`Error al reiniciar datos: ${error}`);
+      }
+    }
+  };
+  
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
@@ -83,13 +157,13 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
                   onChange={(e) => setNewTimeInputs(prev => ({...prev, [campus]: e.target.value}))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      handleAddTime(campus);
+                      handleAddTimeWithSave(campus);
                     }
                   }}
                 />
               </div>
               <button 
-                onClick={() => handleAddTime(campus)}
+                onClick={() => handleAddTimeWithSave(campus)}
                 className="bg-gray-200 p-2 w-10 flex items-center justify-center hover:bg-gray-300"
               >
                 +
@@ -119,7 +193,7 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
 
       {/* File Upload Section */}
       <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4 text-blue-600">Horarios</h2>
+        <h2 className="text-xl font-semibold mb-4 text-blue-600">horarios</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {daysOfWeek.map((day) => (
@@ -135,10 +209,10 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
                     type="file"
                     id={`file-${day}`}
                     className="hidden"
-                    accept=".pdf,.doc,.docx,.xlsx,.csv"
+                    accept=".xlsx,.xls,.csv"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        handleFileUpload(day, e.target.files[0]);
+                        handleFileUploadWithProcessing(day, e.target.files[0]);
                       }
                     }}
                   />
@@ -178,7 +252,7 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
       {/* Botón de reinicio */}
       <div className="w-full flex justify-center mt-12 mb-6">
         <button 
-          onClick={handleReset}
+          onClick={handleResetWithDatabase}
           className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-md font-medium transition-colors shadow-md flex items-center"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">

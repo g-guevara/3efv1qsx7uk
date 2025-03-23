@@ -96,3 +96,22 @@ export const processExcelFile = async (file: File, diaSemana: string): Promise<v
     throw error;
   }
 };
+
+// Función para reiniciar todos los datos
+export const resetAllData = async (): Promise<void> => {
+  try {
+    const response = await fetch(`${API_URL}/reset`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Datos reiniciados correctamente:', result);
+  } catch (error) {
+    console.error('Error reiniciando datos:', error);
+    throw error;
+  }
+};
