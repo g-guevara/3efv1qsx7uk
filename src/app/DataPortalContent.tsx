@@ -3,9 +3,13 @@ import { saveBusSchedule, processExcelFile, resetAllData } from '../services/api
 
 // Tipo para los distintos campus
 type CampusType = 'vina' | 'penalolen' | 'errazuriz' | 'vitacura' | string;
+type BusType = 'Subida' | 'Regreso';
 type SchedulesType = {
   [campus: string]: {
-    [destination: string]: string[];
+    [destination: string]: {
+      Subida: string[];
+      Regreso: string[];
+    };
   };
 };
 
@@ -19,8 +23,8 @@ type DataPortalContentProps = {
   newTimeInputs: {[key: string]: string};
   uploadedFiles: UploadedFilesType;
   daysOfWeek: string[];
-  handleAddTime: (campus: string, destination: string) => void;
-  handleRemoveTime: (campus: string, destination: string, index: number) => void;
+  handleAddTime: (campus: string, destination: string, busType: BusType) => void;
+  handleRemoveTime: (campus: string, destination: string, busType: BusType, index: number) => void;
   handleFileUpload: (day: string, file: File) => void;
   handleFileRemove: (day: string) => void;
   handleReset: () => void;
@@ -53,14 +57,14 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
   };
   
   // Función para guardar un horario de bus en la base de datos
-  const saveBusToDatabase = async (campus: string, destination: string, time: string) => {
+  const saveBusToDatabase = async (campus: string, destination: string, time: string, busType: BusType) => {
     try {
       const currentDate = new Date();
       const formattedDate = currentDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
       
       const busData = {
         Tipo: "Buses",
-        Evento: "Buses", // Ahora siempre "Buses"
+        Evento: `${busType} bus`, // "Subida bus" o "Regreso bus"
         Fecha: formattedDate,
         Inicio: time,
         Fin: time,
@@ -72,7 +76,7 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
       };
       
       await saveBusSchedule(busData);
-      console.log(`Horario guardado para ${campus}: ${time}, destino: ${destination}`);
+      console.log(`Horario guardado para ${campus}: ${time}, destino: ${destination}, tipo: ${busType}`);
     } catch (error) {
       console.error('Error al guardar el horario:', error);
       alert(`Error al guardar el horario en la base de datos: ${error}`);
@@ -104,8 +108,8 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
   };
   
   // Función para agregar un nuevo horario con validación
-  const handleAddTimeWithValidation = async (campus: string, destination: string) => {
-    const inputKey = `${campus}-${destination}`;
+  const handleAddTimeWithValidation = async (campus: string, destination: string, busType: BusType) => {
+    const inputKey = `${campus}-${destination}-${busType}`;
     const timeValue = newTimeInputs[inputKey];
     
     if (!timeValue || !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeValue)) {
@@ -114,10 +118,10 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
     }
     
     // Guardar el horario en la base de datos
-    await saveBusToDatabase(campus, destination, timeValue);
+    await saveBusToDatabase(campus, destination, timeValue, busType);
     
     // Actualizar la UI
-    handleAddTime(campus, destination);
+    handleAddTime(campus, destination, busType);
   };
   
   // Función modificada para reiniciar también en la base de datos
@@ -170,43 +174,78 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
             <h3 className="text-lg font-medium mb-4">{capitalizeFirstLetter(campus)}</h3>
             
             {schedules[campus] && Object.keys(schedules[campus]).map(destination => (
-              <div key={`${campus}-${destination}`} className="mb-4">
-                <div className="flex items-start mb-2">
-                  <div className="w-48 border border-purple-200 bg-purple-100 p-2 text-purple-700 rounded-md mr-4">
-                    {destination}
+              <div key={`${campus}-${destination}`} className="mb-6">
+                <div className="w-48 border border-purple-200 bg-purple-100 p-2 text-purple-700 rounded-md mb-2">
+                  {destination}
+                </div>
+                
+                {/* Sección para Subida */}
+                <div className="mb-4 ml-4">
+                  <div className="text-gray-600 mb-2">Subida</div>
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      className="p-2 border border-gray-300 w-32 mr-2"
+                      placeholder="--:--"
+                      value={newTimeInputs[`${campus}-${destination}-Subida`] || ''}
+                      onChange={(e) => setNewTimeInputs(prev => ({
+                        ...prev,
+                        [`${campus}-${destination}-Subida`]: e.target.value
+                      }))}
+                    />
+                    <button
+                      className="p-2 w-10 bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+                      onClick={() => handleAddTimeWithValidation(campus, destination, 'Subida')}
+                    >
+                      +
+                    </button>
                   </div>
                   
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <input
-                        type="text"
-                        className="p-2 border border-gray-300 w-32 mr-2"
-                        placeholder="--:--"
-                        value={newTimeInputs[`${campus}-${destination}`] || ''}
-                        onChange={(e) => setNewTimeInputs(prev => ({
-                          ...prev,
-                          [`${campus}-${destination}`]: e.target.value
-                        }))}
-                      />
-                      <button
-                        className="p-2 w-10 bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
-                        onClick={() => handleAddTimeWithValidation(campus, destination)}
+                  <div className="flex flex-wrap gap-2">
+                    {schedules[campus][destination]?.Subida.map((time, index) => (
+                      <div
+                        key={`time-${campus}-${destination}-Subida-${index}`}
+                        className="p-2 border border-gray-300 cursor-pointer bg-gray-50"
+                        onClick={() => handleRemoveTime(campus, destination, 'Subida', index)}
                       >
-                        +
-                      </button>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2">
-                      {schedules[campus][destination].map((time, index) => (
-                        <div
-                          key={`time-${campus}-${destination}-${index}`}
-                          className="p-2 border border-gray-300 cursor-pointer"
-                          onClick={() => handleRemoveTime(campus, destination, index)}
-                        >
-                          {time}
-                        </div>
-                      ))}
-                    </div>
+                        {time}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Sección para Regreso */}
+                <div className="mb-4 ml-4">
+                  <div className="text-gray-600 mb-2">Regreso</div>
+                  <div className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      className="p-2 border border-gray-300 w-32 mr-2"
+                      placeholder="--:--"
+                      value={newTimeInputs[`${campus}-${destination}-Regreso`] || ''}
+                      onChange={(e) => setNewTimeInputs(prev => ({
+                        ...prev,
+                        [`${campus}-${destination}-Regreso`]: e.target.value
+                      }))}
+                    />
+                    <button
+                      className="p-2 w-10 bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+                      onClick={() => handleAddTimeWithValidation(campus, destination, 'Regreso')}
+                    >
+                      +
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {schedules[campus][destination]?.Regreso.map((time, index) => (
+                      <div
+                        key={`time-${campus}-${destination}-Regreso-${index}`}
+                        className="p-2 border border-gray-300 cursor-pointer bg-gray-50"
+                        onClick={() => handleRemoveTime(campus, destination, 'Regreso', index)}
+                      >
+                        {time}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

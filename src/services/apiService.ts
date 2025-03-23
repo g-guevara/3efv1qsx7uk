@@ -5,7 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 export interface BusData {
   _id?: string;
   Tipo: string;
-  Evento: string; // Siempre "Buses"
+  Evento: string; // Ahora será "Subida bus" o "Regreso bus" según el switcher
   Fecha: string;
   Inicio: string;
   Fin: string;
@@ -34,18 +34,12 @@ export interface EventData {
 // Función para enviar datos de buses a MongoDB
 export const saveBusSchedule = async (busData: BusData): Promise<BusData> => {
   try {
-    // Aseguramos que Evento siempre sea "Buses"
-    const dataToSend = {
-      ...busData,
-      Evento: "Buses"
-    };
-    
     const response = await fetch(`${API_URL}/buses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(dataToSend),
+      body: JSON.stringify(busData),
     });
 
     if (!response.ok) {

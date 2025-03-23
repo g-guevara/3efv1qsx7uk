@@ -32,7 +32,7 @@ const EventoSchema = new mongoose.Schema({
   diaSemana: String // Agregado para asociar el día de la semana
 });  
 
-// Schema para buses (modificado)
+// Schema para buses (modificado para manejar "Subida bus" o "Regreso bus")
 const BusSchema = new mongoose.Schema({
   Tipo: {
     type: String,
@@ -40,7 +40,7 @@ const BusSchema = new mongoose.Schema({
   },
   Evento: {
     type: String,
-    default: "Buses"
+    default: "Buses" // Ahora será "Subida bus" o "Regreso bus"
   },
   Fecha: String,
   Inicio: String,
@@ -73,8 +73,7 @@ app.get("/eventos", async (req, res) => {
 app.post("/buses", async (req, res) => {
   try {
     const busData = req.body;
-    // Asegurarse de que Evento siempre sea "Buses"
-    busData.Evento = "Buses";
+    // Ya no forzamos que Evento sea "Buses", permitimos "Subida bus" o "Regreso bus"
     
     const newBus = new Bus(busData);
     await newBus.save();
@@ -119,7 +118,8 @@ app.get("/buses/:campus", async (req, res) => {
       busesByDestination[destino].push({
         id: bus._id,
         hora: bus.Inicio,
-        fecha: bus.Fecha
+        fecha: bus.Fecha,
+        tipo: bus.Evento // Incluir el tipo de viaje (Subida bus o Regreso bus)
       });
     });
     

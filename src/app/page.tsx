@@ -5,9 +5,13 @@ import DataPortalContent from './DataPortalContent';
 
 // Tipo para los distintos campus
 type CampusType = 'vina' | 'penalolen' | 'errazuriz' | 'vitacura' | string;
+type BusType = 'Subida' | 'Regreso';
 type SchedulesType = {
   [campus: string]: {
-    [destination: string]: string[];
+    [destination: string]: {
+      Subida: string[];
+      Regreso: string[];
+    };
   };
 };
 
@@ -81,26 +85,34 @@ const DataPortal = () => {
         ...prev,
         [campus]: {
           ...campusSchedules,
-          [destination]: []
+          [destination]: {
+            Subida: [],
+            Regreso: []
+          }
         }
       };
     });
   };
 
-  const handleAddTime = (campus: string, destination: string) => {
-    const inputKey = `${campus}-${destination}`;
+  const handleAddTime = (campus: string, destination: string, busType: BusType) => {
+    const inputKey = `${campus}-${destination}-${busType}`;
     if (newTimeInputs[inputKey]) {
       if (isValidTimeFormat(newTimeInputs[inputKey])) {
         setSchedules(prev => {
           const campusSchedules = {...(prev[campus] || {})};
-          const destinationTimes = [...(campusSchedules[destination] || [])];
-          destinationTimes.push(newTimeInputs[inputKey]);
+          const destinationSchedules = {...(campusSchedules[destination] || { Subida: [], Regreso: [] })};
+          const busTypeSchedules = [...(destinationSchedules[busType] || [])];
+          
+          busTypeSchedules.push(newTimeInputs[inputKey]);
           
           return {
             ...prev,
             [campus]: {
               ...campusSchedules,
-              [destination]: destinationTimes
+              [destination]: {
+                ...destinationSchedules,
+                [busType]: busTypeSchedules
+              }
             }
           };
         });
@@ -116,18 +128,22 @@ const DataPortal = () => {
     }
   };
 
-  const handleRemoveTime = (campus: string, destination: string, index: number) => {
+  const handleRemoveTime = (campus: string, destination: string, busType: BusType, index: number) => {
     setSchedules(prev => {
       const campusSchedules = {...(prev[campus] || {})};
-      const destinationTimes = [...(campusSchedules[destination] || [])];
+      const destinationSchedules = {...(campusSchedules[destination] || { Subida: [], Regreso: [] })};
+      const busTypeSchedules = [...(destinationSchedules[busType] || [])];
       
-      destinationTimes.splice(index, 1);
+      busTypeSchedules.splice(index, 1);
       
       return {
         ...prev,
         [campus]: {
           ...campusSchedules,
-          [destination]: destinationTimes
+          [destination]: {
+            ...destinationSchedules,
+            [busType]: busTypeSchedules
+          }
         }
       };
     });
@@ -177,12 +193,10 @@ const DataPortal = () => {
       // Actualizar la lista de campus
       setCampuses(prev => [...prev, normalizedName]);
       
-      // Inicializar el array de horarios para el nuevo campus con destinos predeterminados
+      // Inicializar el array de horarios para el nuevo campus sin destinos predeterminados
       setSchedules(prev => ({
         ...prev,
-        [normalizedName]: {
-          'sporting': [] // Destino predeterminado 1
-        }
+        [normalizedName]: {}
       }));
     }
   };
