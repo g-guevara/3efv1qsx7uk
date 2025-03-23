@@ -88,6 +88,34 @@ const DataPortal = () => {
     }));
   };
   
+  const handleReset = () => {
+    // Confirmar que el usuario realmente quiere reiniciar todo
+    if (window.confirm('¿Estás seguro de que deseas reiniciar todos los datos? Esta acción no se puede deshacer.')) {
+      // Reiniciar horarios
+      setSchedules({
+        vina: [],
+        santiago: []
+      });
+      
+      // Reiniciar archivos subidos
+      setUploadedFiles({
+        Lunes: null,
+        Martes: null,
+        Miércoles: null,
+        Jueves: null,
+        Viernes: null,
+        Sábado: null,
+        Domingo: null
+      });
+      
+      // Reiniciar inputs de nuevos horarios
+      setNewTimeInputs({
+        vina: '',
+        santiago: ''
+      });
+    }
+  };
+  
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto p-6 bg-white">
       <h1 className="text-2xl font-bold mb-6 text-gray-800">Portal de inyección de datos a Salas UAI</h1>
@@ -241,6 +269,19 @@ const DataPortal = () => {
               </div>
             </div>
           </div>
+        </div>
+        
+        {/* Botón de reinicio */}
+        <div className="w-full flex justify-center mt-12 mb-6">
+          <button 
+            onClick={handleReset}
+            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-md font-medium transition-colors shadow-md flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+            </svg>
+            Reiniciar todos los datos
+          </button>
         </div>
       </div>
     </div>
