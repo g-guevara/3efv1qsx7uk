@@ -33,7 +33,9 @@ app.listen(PORT, () => {
   console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 });
 
-// Ruta para ELIMINAR horarios de buses
+// Agregar esta ruta a tu archivo server.js
+
+// RUTA PARA ELIMINAR UN HORARIO DE BUS POR ID
 app.delete("/buses/:id", async (req, res) => {
   try {
     const busId = req.params.id;

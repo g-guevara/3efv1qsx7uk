@@ -16,6 +16,12 @@ export interface BusData {
   fechaActualizacion: string;
 }
 
+// Interfaz para buses en UI
+export interface BusSchedule {
+  time: string;
+  id?: string;
+}
+
 // Interfaz para eventos del Excel
 export interface EventData {
   Tipo: string;
