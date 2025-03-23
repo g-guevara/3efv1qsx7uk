@@ -53,6 +53,38 @@ export const saveBusSchedule = async (busData: BusData): Promise<BusData> => {
   }
 };
 
+// Función para eliminar un horario de bus
+export const deleteBusSchedule = async (busId: string): Promise<void> => {
+  try {
+    const response = await fetch(`${API_URL}/buses/${busId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error eliminando horario de bus:', error);
+    throw error;
+  }
+};
+
+// Función para cargar horarios de buses existentes
+export const loadBusSchedules = async (campus: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/buses/${campus}`);
+    
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error cargando horarios de buses:', error);
+    throw error;
+  }
+};
+
 // Función para enviar datos de eventos del Excel a MongoDB
 export const saveEvents = async (events: EventData[]): Promise<EventData[]> => {
   try {
