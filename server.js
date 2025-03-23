@@ -27,29 +27,31 @@ const EventoSchema = new mongoose.Schema({
   Sala: String,
   Edificio: String,
   Campus: String,
+  Ciudad: String, // Campo opcional para ciudad
   fechaActualizacion: String,
   diaSemana: String // Agregado para asociar el día de la semana
 });  
 
-// Schema para buses
+// Schema para buses (modificado)
 const BusSchema = new mongoose.Schema({
   Tipo: {
     type: String,
     default: "Buses"
   },
-  Evento: String, // Campus
+  Evento: {
+    type: String,
+    default: "Buses"
+  },
   Fecha: String,
   Inicio: String,
   Fin: String,
-  Sala: {
-    type: String,
-    default: "Dominicos"
-  },
+  Sala: String, // El destino (Dominicos, Grecia, etc.)
   Edificio: {
     type: String,
     default: "paradero"
   },
-  Campus: String,
+  Campus: String, // El campus de origen
+  Ciudad: String, // Campo opcional para la ciudad
   fechaActualizacion: String
 });
 
@@ -71,6 +73,9 @@ app.get("/eventos", async (req, res) => {
 app.post("/buses", async (req, res) => {
   try {
     const busData = req.body;
+    // Asegurarse de que Evento siempre sea "Buses"
+    busData.Evento = "Buses";
+    
     const newBus = new Bus(busData);
     await newBus.save();
     res.status(201).json(newBus);
@@ -94,6 +99,34 @@ app.post("/events/batch", async (req, res) => {
   } catch (err) {
     console.error("Error al guardar eventos:", err);
     res.status(500).json({ error: "Error al guardar eventos" });
+  }
+});
+
+// RUTA PARA OBTENER HORARIOS DE BUSES POR CAMPUS Y DESTINO
+app.get("/buses/:campus", async (req, res) => {
+  try {
+    const campus = req.params.campus;
+    const buses = await Bus.find({ Campus: campus });
+    
+    // Agrupar buses por destino
+    const busesByDestination = {};
+    
+    buses.forEach(bus => {
+      const destino = bus.Sala;
+      if (!busesByDestination[destino]) {
+        busesByDestination[destino] = [];
+      }
+      busesByDestination[destino].push({
+        id: bus._id,
+        hora: bus.Inicio,
+        fecha: bus.Fecha
+      });
+    });
+    
+    res.json(busesByDestination);
+  } catch (err) {
+    console.error("Error al obtener horarios de buses:", err);
+    res.status(500).json({ error: "Error al obtener los horarios de buses" });
   }
 });
 
@@ -126,6 +159,7 @@ app.post("/process-excel", upload.single('file'), async (req, res) => {
       Sala: row.Sala || '',
       Edificio: row.Edificio || '',
       Campus: row.Campus || '',
+      Ciudad: row.Ciudad || '', // Incluir el campo Ciudad si existe
       fechaActualizacion: new Date().toISOString(),
       diaSemana: diaSemana
     }));
@@ -163,14 +197,3 @@ app.delete("/reset", async (req, res) => {
 app.get("/", (req, res) => {
   res.send("Servidor funcionando en Vercel 🚀");
 });
-
-// Puerto para desarrollo local
-const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`Servidor ejecutándose en el puerto ${PORT}`);
-  });
-}
-
-// Exportar `app` para Vercel
-module.exports = app;

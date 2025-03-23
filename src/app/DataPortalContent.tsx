@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { saveBusSchedule, processExcelFile, resetAllData } from '../services/apiService';
 
 // Tipo para los distintos campus
 type CampusType = 'vina' | 'penalolen' | 'errazuriz' | 'vitacura' | string;
 type SchedulesType = {
-  [campus: string]: string[];
+  [campus: string]: {
+    [destination: string]: string[];
+  };
 };
 
 type UploadedFilesType = {
@@ -14,17 +16,17 @@ type UploadedFilesType = {
 type DataPortalContentProps = {
   schedules: SchedulesType;
   campuses: string[];
-  newTimeInputs: {[campus: string]: string};
+  newTimeInputs: {[key: string]: string};
   uploadedFiles: UploadedFilesType;
   daysOfWeek: string[];
-  handleAddTime: (campus: CampusType) => void;
-  handleRemoveTime: (campus: CampusType, index: number) => void;
-  handleTimeChange: (campus: CampusType, index: number, value: string) => void;
+  handleAddTime: (campus: string, destination: string) => void;
+  handleRemoveTime: (campus: string, destination: string, index: number) => void;
   handleFileUpload: (day: string, file: File) => void;
   handleFileRemove: (day: string) => void;
   handleReset: () => void;
   handleAddCampus: () => void;
-  setNewTimeInputs: React.Dispatch<React.SetStateAction<{[campus: string]: string}>>;
+  handleAddDestination: (campus: string, destination: string) => void;
+  setNewTimeInputs: React.Dispatch<React.SetStateAction<{[key: string]: string}>>;
 };
 
 const DataPortalContent: React.FC<DataPortalContentProps> = ({
@@ -39,33 +41,38 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
   handleFileRemove,
   handleReset,
   handleAddCampus,
+  handleAddDestination,
   setNewTimeInputs
 }) => {
+  // Estado para nuevos destinos
+  const [newDestination, setNewDestination] = useState<{[campus: string]: string}>({});
+  
   // Función para capitalizar la primera letra (para mostrar los nombres de campus)
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1).replace(/_/g, ' ');
   };
   
   // Función para guardar un horario de bus en la base de datos
-  const saveBusToDatabase = async (campus: string, time: string) => {
+  const saveBusToDatabase = async (campus: string, destination: string, time: string) => {
     try {
       const currentDate = new Date();
       const formattedDate = currentDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
       
       const busData = {
         Tipo: "Buses",
-        Evento: campus,
+        Evento: "Buses", // Ahora siempre "Buses"
         Fecha: formattedDate,
         Inicio: time,
         Fin: time,
-        Sala: "Dominicos",
+        Sala: destination, // El destino seleccionado
         Edificio: "paradero",
         Campus: campus,
+        Ciudad: "", // Campo vacío por ahora
         fechaActualizacion: currentDate.toISOString()
       };
       
       await saveBusSchedule(busData);
-      console.log(`Horario guardado para ${campus}: ${time}`);
+      console.log(`Horario guardado para ${campus}: ${time}, destino: ${destination}`);
     } catch (error) {
       console.error('Error al guardar el horario:', error);
       alert(`Error al guardar el horario en la base de datos: ${error}`);
@@ -86,17 +93,31 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
     }
   };
   
-  // Modificación del botón de agregar hora para guardar en la base de datos
-  const handleAddTimeWithSave = async (campus: string) => {
-    if (newTimeInputs[campus] && /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(newTimeInputs[campus])) {
-      // Primero guardamos en la base de datos
-      await saveBusToDatabase(campus, newTimeInputs[campus]);
-      
-      // Luego actualizamos la UI
-      handleAddTime(campus);
+  // Función para agregar un nuevo destino
+  const handleAddNewDestination = (campus: string) => {
+    if (newDestination[campus]?.trim()) {
+      handleAddDestination(campus, newDestination[campus]);
+      setNewDestination(prev => ({...prev, [campus]: ''}));
     } else {
-      handleAddTime(campus); // Manejar errores de formato con la función original
+      alert("Por favor ingrese un nombre de destino válido");
     }
+  };
+  
+  // Función para agregar un nuevo horario con validación
+  const handleAddTimeWithValidation = async (campus: string, destination: string) => {
+    const inputKey = `${campus}-${destination}`;
+    const timeValue = newTimeInputs[inputKey];
+    
+    if (!timeValue || !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeValue)) {
+      alert('Por favor, ingrese una hora válida en formato HH:MM (por ejemplo, 14:30)');
+      return;
+    }
+    
+    // Guardar el horario en la base de datos
+    await saveBusToDatabase(campus, destination, timeValue);
+    
+    // Actualizar la UI
+    handleAddTime(campus, destination);
   };
   
   // Función modificada para reiniciar también en la base de datos
@@ -130,7 +151,7 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10 3a1 1 0 00-1 1v5H4a1 1 0 100 2h5v5a1 1 0 102 0v-5h5a1 1 0 100-2h-5V4a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
-          Agregar Campus
+          Agregar campus
         </button>
       </div>
       
@@ -145,47 +166,73 @@ const DataPortalContent: React.FC<DataPortalContentProps> = ({
       ) : (
         // Campus Sections
         campuses.map(campus => (
-          <div className="mb-8" key={campus}>
-            <h3 className="text-lg font-medium mb-3">{capitalizeFirstLetter(campus)}</h3>
-            <div className="flex flex-wrap gap-2 mb-2">
-              <div className="border border-gray-300 p-2 w-56">
-                <input 
-                  type="text" 
-                  className="w-full p-2 bg-white outline-none" 
-                  placeholder="Agregar horario (HH:MM)"
-                  value={newTimeInputs[campus] || ''}
-                  onChange={(e) => setNewTimeInputs(prev => ({...prev, [campus]: e.target.value}))}
+          <div className="mb-8 border border-gray-200 p-4 rounded-lg" key={campus}>
+            <h3 className="text-lg font-medium mb-4">{capitalizeFirstLetter(campus)}</h3>
+            
+            {schedules[campus] && Object.keys(schedules[campus]).map(destination => (
+              <div key={`${campus}-${destination}`} className="mb-4">
+                <div className="flex items-start mb-2">
+                  <div className="w-48 border border-purple-200 bg-purple-100 p-2 text-purple-700 rounded-md mr-4">
+                    {destination}
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
+                      <input
+                        type="text"
+                        className="p-2 border border-gray-300 w-32 mr-2"
+                        placeholder="--:--"
+                        value={newTimeInputs[`${campus}-${destination}`] || ''}
+                        onChange={(e) => setNewTimeInputs(prev => ({
+                          ...prev,
+                          [`${campus}-${destination}`]: e.target.value
+                        }))}
+                      />
+                      <button
+                        className="p-2 w-10 bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+                        onClick={() => handleAddTimeWithValidation(campus, destination)}
+                      >
+                        +
+                      </button>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {schedules[campus][destination].map((time, index) => (
+                        <div
+                          key={`time-${campus}-${destination}-${index}`}
+                          className="p-2 border border-gray-300 cursor-pointer"
+                          onClick={() => handleRemoveTime(campus, destination, index)}
+                        >
+                          {time}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            <div className="mt-4">
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  className="p-2 border border-purple-300 w-48 mr-2"
+                  placeholder="agregar destino"
+                  value={newDestination[campus] || ''}
+                  onChange={(e) => setNewDestination(prev => ({...prev, [campus]: e.target.value}))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      handleAddTimeWithSave(campus);
+                      handleAddNewDestination(campus);
                     }
                   }}
                 />
-              </div>
-              <button 
-                onClick={() => handleAddTimeWithSave(campus)}
-                className="bg-gray-200 p-2 w-10 flex items-center justify-center hover:bg-gray-300"
-              >
-                +
-              </button>
-              
-              {schedules[campus] && schedules[campus].map((time, index) => (
-                <div 
-                  key={`${campus}-${index}`} 
-                  className="border border-gray-300 p-2 w-56 relative hover:bg-gray-50 cursor-pointer group"
-                  onClick={() => handleRemoveTime(campus, index)}
+                <button
+                  className="p-2 bg-purple-100 text-purple-700 border border-purple-300 hover:bg-purple-200"
+                  onClick={() => handleAddNewDestination(campus)}
                 >
-                  <input 
-                    type="time" 
-                    className="w-full p-2 text-gray-700 pointer-events-none" 
-                    value={time}
-                    readOnly
-                  />
-                  <span className="absolute inset-0 opacity-0 group-hover:opacity-100 flex items-center justify-center bg-red-100 bg-opacity-50 transition-opacity">
-                    <span className="text-red-600 font-medium">Eliminar</span>
-                  </span>
-                </div>
-              ))}
+                  agregar destino
+                </button>
+              </div>
             </div>
           </div>
         ))

@@ -6,18 +6,20 @@ import DataPortalContent from './DataPortalContent';
 // Tipo para los distintos campus
 type CampusType = 'vina' | 'penalolen' | 'errazuriz' | 'vitacura' | string;
 type SchedulesType = {
-  [campus: string]: string[];
+  [campus: string]: {
+    [destination: string]: string[];
+  };
 };
 
 const DataPortal = () => {
   // Lista de campus disponibles, ahora empieza vacía
   const [campuses, setCampuses] = useState<string[]>([]);
   
-  // Inicializar schedules como objeto vacío
+  // Inicializar schedules como objeto vacío con estructura anidada para destinos
   const [schedules, setSchedules] = useState<SchedulesType>({});
   
   // Inicializar newTimeInputs como objeto vacío
-  const [newTimeInputs, setNewTimeInputs] = useState<{[campus: string]: string}>({});
+  const [newTimeInputs, setNewTimeInputs] = useState<{[key: string]: string}>({});
   
   const [uploadedFiles, setUploadedFiles] = useState<{[key: string]: {name: string, date: string} | null}>({
     Lunes: null,
@@ -59,17 +61,54 @@ const DataPortal = () => {
     return regex.test(time);
   };
 
-  const handleAddTime = (campus: CampusType) => {
-    if (newTimeInputs[campus]) {
-      if (isValidTimeFormat(newTimeInputs[campus])) {
-        setSchedules(prev => ({
-          ...prev,
-          [campus]: [...(prev[campus] || []), newTimeInputs[campus]]
-        }));
-        // Reset the input field after adding
+  const handleAddDestination = (campus: string, destination: string) => {
+    if (!destination || destination.trim() === '') {
+      alert('Por favor, ingrese un nombre de destino válido.');
+      return;
+    }
+    
+    // Agregar el nuevo destino al objeto de schedules
+    setSchedules(prev => {
+      const campusSchedules = prev[campus] || {};
+      
+      // Verificar si el destino ya existe
+      if (campusSchedules[destination]) {
+        alert(`El destino "${destination}" ya existe.`);
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        [campus]: {
+          ...campusSchedules,
+          [destination]: []
+        }
+      };
+    });
+  };
+
+  const handleAddTime = (campus: string, destination: string) => {
+    const inputKey = `${campus}-${destination}`;
+    if (newTimeInputs[inputKey]) {
+      if (isValidTimeFormat(newTimeInputs[inputKey])) {
+        setSchedules(prev => {
+          const campusSchedules = {...(prev[campus] || {})};
+          const destinationTimes = [...(campusSchedules[destination] || [])];
+          destinationTimes.push(newTimeInputs[inputKey]);
+          
+          return {
+            ...prev,
+            [campus]: {
+              ...campusSchedules,
+              [destination]: destinationTimes
+            }
+          };
+        });
+        
+        // Limpiar el input después de agregar
         setNewTimeInputs(prev => ({
           ...prev,
-          [campus]: ''
+          [inputKey]: ''
         }));
       } else {
         alert('Por favor, ingrese una hora válida en formato HH:MM (por ejemplo, 14:30)');
@@ -77,21 +116,19 @@ const DataPortal = () => {
     }
   };
 
-  const handleTimeChange = (campus: CampusType, index: number, value: string) => {
-    const newSchedules = {...schedules};
-    if (newSchedules[campus]) {
-      newSchedules[campus][index] = value;
-      setSchedules(newSchedules);
-    }
-  };
-
-  const handleRemoveTime = (campus: CampusType, index: number) => {
+  const handleRemoveTime = (campus: string, destination: string, index: number) => {
     setSchedules(prev => {
-      const campusSchedules = [...(prev[campus] || [])];
-      campusSchedules.splice(index, 1);
+      const campusSchedules = {...(prev[campus] || {})};
+      const destinationTimes = [...(campusSchedules[destination] || [])];
+      
+      destinationTimes.splice(index, 1);
+      
       return {
         ...prev,
-        [campus]: campusSchedules
+        [campus]: {
+          ...campusSchedules,
+          [destination]: destinationTimes
+        }
       };
     });
   };
@@ -140,16 +177,12 @@ const DataPortal = () => {
       // Actualizar la lista de campus
       setCampuses(prev => [...prev, normalizedName]);
       
-      // Inicializar el array de horarios para el nuevo campus
+      // Inicializar el array de horarios para el nuevo campus con destinos predeterminados
       setSchedules(prev => ({
         ...prev,
-        [normalizedName]: []
-      }));
-      
-      // Inicializar el input para el nuevo campus
-      setNewTimeInputs(prev => ({
-        ...prev,
-        [normalizedName]: ''
+        [normalizedName]: {
+          'sporting': [] // Destino predeterminado 1
+        }
       }));
     }
   };
@@ -166,11 +199,11 @@ const DataPortal = () => {
         daysOfWeek={daysOfWeek}
         handleAddTime={handleAddTime}
         handleRemoveTime={handleRemoveTime}
-        handleTimeChange={handleTimeChange}
         handleFileUpload={handleFileUpload}
         handleFileRemove={handleFileRemove}
         handleReset={handleReset}
         handleAddCampus={handleAddCampus}
+        handleAddDestination={handleAddDestination}
         setNewTimeInputs={setNewTimeInputs}
       />
       
